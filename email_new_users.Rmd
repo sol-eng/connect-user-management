@@ -1,0 +1,91 @@
+---
+title: "Report for New Users"
+output: 
+  html_document: 
+    df_print: paged
+  params:
+    days_back:
+      input: slider
+      label: "Days Back"
+      min: 0
+      max: 1000
+      step: 1
+      value: 1
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+days_back <- 180
+
+library(dplyr)
+library(connectapi)
+
+get_all_users <- function(connect){
+  more <- TRUE
+  page <- 1
+  users <- tibble::tibble()
+  while(more){
+    more <- FALSE
+    message(paste("Fetching page", page))
+    tmp_users <- connect$get_users(page)
+    if (length(tmp_users$results)) {
+      more <- TRUE
+      page <- page + 1
+    }
+    users <- dplyr::bind_rows(
+      users,
+      dplyr::bind_rows(
+        lapply(tmp_users$results, as_tibble)
+      )
+    )
+  }
+  
+  return(users)
+}
+
+conn <- Connect$new(
+  host = Sys.getenv("RSTUDIO_CONNECT_SERVER"),
+  api_key = Sys.getenv("RSTUDIO_CONNECT_API_KEY")
+)
+```
+
+```{r label}
+users <- get_all_users(conn)
+users <- users %>% mutate(
+  created_date_ts = lubridate::ymd_hms(created_time)
+)
+
+new_users <- users %>%
+  filter(
+    created_date_ts > lubridate::as_date(
+      Sys.time() - lubridate::ddays(days_back)
+      )
+  )
+
+new_users
+
+if (nrow(new_users) > 0) {
+  to_print <- purrr::map_chr(
+    1:nrow(new_users), 
+    ~sprintf(
+      "%25s %25s %25s", 
+      new_users$username[.x], 
+      new_users$email[.x],
+      new_users$created_time[.x])
+    )
+  to_print <- c(sprintf("%25s %25s %25s", "Username", "Email", "Created Time"), to_print)
+  
+  body <- glue::glue(
+    "New users as of {Sys.Date()}:\n","{paste0(to_print, collapse='\n')}"
+  )
+  
+  rmarkdown::output_metadata$set(
+    rsc_email_subject = "New RStudio Connect Users",
+    rsc_email_body_text = body,
+    rsc_email_suppress_scheduled = FALSE
+  )
+} else {
+  rmarkdown::output_metadata$set(rsc_email_suppress_scheduled = TRUE)
+}
+```
