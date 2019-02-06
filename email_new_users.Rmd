@@ -3,14 +3,14 @@ title: "Report for New Users"
 output: 
   html_document: 
     df_print: paged
-  params:
-    days_back:
-      input: slider
-      label: "Days Back"
-      min: 0
-      max: 1000
-      step: 1
-      value: 1
+params:
+  days_back:
+    input: slider
+    label: "Days Back"
+    min: 0
+    max: 1000
+    step: 1
+    value: 1
 ---
 
 ```{r setup, include=FALSE}
@@ -48,7 +48,10 @@ conn <- Connect$new(
 )
 ```
 
-```{r label}
+
+## Gather New Users from the Past `r params$days_back` Day(s)
+
+```{r data_prep}
 users <- get_all_users(conn)
 users <- users %>% mutate(
   created_date_ts = lubridate::ymd_hms(created_time)
@@ -63,6 +66,10 @@ new_users <- users %>%
 
 new_users
 
+```
+
+## Generate the Custom Email Body
+```{r email}
 if (nrow(new_users) > 0) {
   to_print <- purrr::map_chr(
     1:nrow(new_users), 
@@ -75,7 +82,8 @@ if (nrow(new_users) > 0) {
   to_print <- c(sprintf("%25s %25s %25s", "Username", "Email", "Created Time"), to_print)
   
   body <- glue::glue(
-    "New users as of {Sys.Date()}:\n","{paste0(to_print, collapse='\n')}"
+    "New users as of {Sys.Date()} for the past {params$days_back} day(s):\n",
+    "{paste0(to_print, collapse='\n')}"
   )
   
   rmarkdown::output_metadata$set(
@@ -83,7 +91,10 @@ if (nrow(new_users) > 0) {
     rsc_email_body_text = body,
     rsc_email_suppress_scheduled = FALSE
   )
+  
+  cat(body)
 } else {
+  cat("No new users. Not sending email")
   rmarkdown::output_metadata$set(rsc_email_suppress_scheduled = TRUE)
 }
 ```
