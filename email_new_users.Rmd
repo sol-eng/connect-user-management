@@ -16,8 +16,6 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-days_back <- 180
-
 library(dplyr)
 library(connectapi)
 
@@ -59,7 +57,7 @@ users <- users %>% mutate(
 new_users <- users %>%
   filter(
     created_date_ts > lubridate::as_date(
-      Sys.time() - lubridate::ddays(days_back)
+      Sys.time() - lubridate::ddays(params$days_back)
       )
   )
 
