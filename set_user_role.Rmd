@@ -1,7 +1,7 @@
 ---
 title: "set_user_role"
 date: "11/8/2019"
-output:
+output: 
   html_document: 
     df_print: paged
 params:
@@ -66,9 +66,8 @@ Are we going to run the report? (based on parameter `run_report`)
 
 **`r ifelse(params$run_report, "YES", "NO")`**
 
-```{r}
+```{r, echo=FALSE}
 run_report <- as.logical(params$run_report)
-knitr::opts_chunk$set(include = !run_report)
 if (!run_report) knitr::knit_exit("Terminating the report early.")
 ```
 
@@ -146,10 +145,10 @@ admin_differences <- purrr::keep(
 simplify_function <- function(.list , .target) {
   list(
     current_role = .list$user_role,
+    target_role = .target,
     username = .list$username,
     email = .list$email,
-    user_guid = .list$guid,
-    target_role = .target
+    user_guid = .list$guid
   )
 }
 
@@ -190,20 +189,9 @@ If users have been changed, send an email.
 ```{r send_email}
 if (nrow(exec_df) > 0) {
   suppress_scheduled_email(FALSE)
-  email <- compose_email(
-    body = "
-      Changed {length(results)} User Roles
-      
-      {formattable::format_table(exec_df)
-      
-      Raw Results:
-      
-      {results}
-      "
-  )
+  render_connect_email("set_user_role_email.Rmd") %>%
   attach_connect_email(
-    email = email,
-    subject = glue::glue("Changed {length(results)} User Roles"),
+    subject = glue::glue("Changed {length(results)} User Role(s)"),
     attach_output = TRUE
   )
 }
