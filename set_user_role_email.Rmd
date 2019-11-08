@@ -1,0 +1,18 @@
+---
+title: "set_user_role_email"
+output: blastula::blastula_email
+---
+
+## Changed `r length(results)` Users
+
+( of `r nrow(exec_df)` to change )
+
+```{r print_exec_df, echo = FALSE}
+exec_df
+```
+
+## Raw Results
+
+```{r print_results, echo=FALSE}
+results
+```
