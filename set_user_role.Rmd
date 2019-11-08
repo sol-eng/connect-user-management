@@ -1,7 +1,9 @@
 ---
 title: "set_user_role"
 date: "11/8/2019"
-output: html_document
+output:
+  html_document: 
+    df_print: paged
 params:
   viewer_group:
     input: text
@@ -16,15 +18,41 @@ params:
     label: "Administrator Group"
     value: "role_admin"
   run_report:
-    input: boolean
+    input: select
+    choices: [TRUE, FALSE]
     label: "Run Report?"
     value: false
 ---
+```{r preflight_check, results='asis', include=TRUE}
+if (
+  nchar(Sys.getenv("RSTUDIO_CONNECT_SERVER")) == 0 ||
+  nchar(Sys.getenv("RSTUDIO_CONNECT_API_KEY")) == 0
+) {
+  print(htmltools::h4("ERROR: Variables Not Defined"))
+  print(htmltools::div(
+    "The RSTUDIO_CONNECT_SERVER and RSTUDIO_CONNECT_API_KEY",
+    "environment variables are required in order for this report",
+    "to manage users. The API_KEY should represent an administrator",
+    htmltools::br(),
+    htmltools::br(),
+    "Please define these variables",
+    "and then re-run the report.",
+    htmltools::br(),
+    htmltools::br(),
+    style = "max-width: 600px"
+  ))
+  knitr::knit_exit("Terminating the report early.")
+}
+```
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(blastula)
 library(connectapi)
 library(purrr)
+
+# suppress email by default (enable if changes)
+suppress_scheduled_email()
 
 client <- connect()
 ```
@@ -37,6 +65,12 @@ This report will:
 Are we going to run the report? (based on parameter `run_report`)
 
 **`r ifelse(params$run_report, "YES", "NO")`**
+
+```{r}
+run_report <- as.logical(params$run_report)
+knitr::opts_chunk$set(include = !run_report)
+if (!run_report) knitr::knit_exit("Terminating the report early.")
+```
 
 ## Get the Connect Groups in Question
 
@@ -144,4 +178,33 @@ results <- purrr::pmap(
 )
 
 results
+```
+
+## Create an Email
+
+If users have been changed, send an email.
+
+- **`r nrow(exec_df)` users _to change_**
+- **`r length(results)` users _changed_**
+
+```{r send_email}
+if (nrow(exec_df) > 0) {
+  suppress_scheduled_email(FALSE)
+  email <- compose_email(
+    body = "
+      Changed {length(results)} User Roles
+      
+      {formattable::format_table(exec_df)
+      
+      Raw Results:
+      
+      {results}
+      "
+  )
+  attach_connect_email(
+    email = email,
+    subject = glue::glue("Changed {length(results)} User Roles"),
+    attach_output = TRUE
+  )
+}
 ```
