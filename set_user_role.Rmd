@@ -1,0 +1,147 @@
+---
+title: "set_user_role"
+date: "11/8/2019"
+output: html_document
+params:
+  viewer_group:
+    input: text
+    label: "Viewer Group"
+    value: "role_viewer"
+  publisher_group:
+    input: text
+    label: "Publisher Group"
+    value: "role_publisher"
+  admin_group:
+    input: text
+    label: "Administrator Group"
+    value: "role_admin"
+  run_report:
+    input: boolean
+    label: "Run Report?"
+    value: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(connectapi)
+library(purrr)
+
+client <- connect()
+```
+
+This report will:
+- get members in the group names specified by parameters
+- map those users to RStudio Connect user roles
+- if a user is a member of multiple groups, they will get the greatest role
+
+Are we going to run the report? (based on parameter `run_report`)
+
+**`r ifelse(params$run_report, "YES", "NO")`**
+
+## Get the Connect Groups in Question
+
+```{r get_groups}
+# simple - only get 500 groups... no paging
+all_groups <- client$groups(page_size = 500)
+
+# find the entries we care about
+viewer_group <- params$viewer_group
+publisher_group <- params$publisher_group
+admin_group <- params$admin_group
+target_groups <- c(
+  viewer_group, publisher_group, admin_group
+  )
+
+groups_list <- purrr::keep(all_groups$results, ~.x$name %in% target_groups)
+groups_list <- purrr::set_names(
+  groups_list, 
+  purrr::map_chr(groups_list, ~ .x$name)
+  )
+
+groups_list
+```
+
+## Get the List of Members for those Groups
+
+```{r get_group_membership}
+viewer_members <- list();
+publisher_members <- list();
+admin_members <- list();
+
+tryCatch({
+viewer_guid <- groups_list[[viewer_group]]$guid
+viewer_members <- client$group_members(viewer_guid)
+}, error = function(e){print(e); message("Maybe viewer_group not found?")})
+
+tryCatch({
+publisher_guid <- groups_list[[publisher_group]]$guid
+publisher_members <- client$group_members(publisher_guid)
+}, error = function(e){print(e); message("Maybe publisher_group not found?")})
+
+tryCatch({
+admin_guid <- groups_list[[admin_group]]$guid
+admin_members <- client$group_members(admin_guid)
+}, error = function(e){print(e); message("Maybe admin_group not found?")})
+```
+
+## Find Users whose Role does not Match
+
+> NOTE: Checking for users who are members of multiple groups
+
+```{r find_group_membership_differences}
+viewer_differences <- purrr::keep(
+  viewer_members$results,
+  ~ .x$user_role != "viewer" &&
+    ! .x$guid %in% purrr::map_chr(publisher_members$results, ~.x$guid) &&
+    ! .x$guid %in% purrr::map_chr(admin_members$results, ~.x$guid)
+)
+
+publisher_differences <- purrr::keep(
+  publisher_members$results,
+  ~ .x$user_role != "publisher" &&
+    ! .x$guid %in% purrr::map_chr(admin_members$results, ~.x$guid)
+)
+
+admin_differences <- purrr::keep(
+  admin_members$results,
+  ~ .x$user_role != "administrator"
+)
+```
+
+```{r print_group_membership_differences}
+simplify_function <- function(.list , .target) {
+  list(
+    current_role = .list$user_role,
+    username = .list$username,
+    email = .list$email,
+    user_guid = .list$guid,
+    target_role = .target
+  )
+}
+
+exec_list <- c(
+  purrr::map2(viewer_differences, "viewer", simplify_function),
+  purrr::map2(publisher_differences, "publisher", simplify_function),
+  purrr::map2(admin_differences, "administrator", simplify_function)
+)
+
+exec_df <- purrr::map_df(exec_list, identity)
+exec_df
+```
+
+## Set Group Membership
+
+```{r set_group_membership}
+results <- purrr::pmap(
+  list(
+    guid = purrr::map_chr(exec_list, ~.x$user_guid),
+    target_role = purrr::map_chr(exec_list, ~.x$target_role)
+    ),
+  function(guid, target_role, client) {
+    client$users_update(user_guid = guid, user_role = target_role)
+  },
+  client = client
+)
+
+results
+```
