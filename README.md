@@ -7,13 +7,13 @@ users and groups.
 This repository houses some examples that might be useful in
 your organization.
 
-- [Email that Reports New Users on RStudio Connect](./email_new_users.Rmd)
+- [Email that Reports New Users on RStudio Connect](./email_new_users/email_new_users.Rmd)
     - Configurable "lookback" period
     - Checks if any users were created within the last X days (i.e. last day)
     - Shows the data for those users
     - Sends an email with the user, email, and created time
   
-- [Report that Sets User Roles based on Group Membership](./set_user_role.Rmd)
+- [Report that Sets User Roles based on Group Membership](./set_user_role/set_user_role.Rmd)
     - Configurable group names mapped to roles (`viewer`, `publisher`, `administrator`)
     - Groups must already exist on RStudio Connect
     - **NOTE: Has a `run_report` parameter that defaults to FALSE!!**
