@@ -3,9 +3,9 @@ title: "set_user_role_email"
 output: blastula::blastula_email
 ---
 
-## Changed `r length(results)` Users
+## Changed `r length(results)` User Roles
 
-( of `r nrow(exec_df)` to change )
+Details below:
 
 ```{r print_exec_df, echo = FALSE}
 exec_df
