@@ -1,6 +1,6 @@
 ---
-title: "set_user_role"
-date: "11/8/2019"
+title: "Set User Role"
+date: "`r Sys.Date()`"
 output: 
   html_document: 
     df_print: paged
@@ -58,6 +58,7 @@ client <- connect()
 ```
 
 This report will:
+
 - get members in the group names specified by parameters
 - map those users to RStudio Connect user roles
 - if a user is a member of multiple groups, they will get the greatest role
