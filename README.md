@@ -25,4 +25,4 @@ your organization.
     - Sends an email with information about the users whose role was changed
     - To run interactively, you can use "Knit with Parameters"
 
-![Knit with Parameters in the RStudio IDE](./knit_with_params.png){width=400px}\
+![Knit with Parameters in the RStudio IDE](./knit_with_params.png)
