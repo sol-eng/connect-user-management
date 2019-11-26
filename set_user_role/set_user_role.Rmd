@@ -126,18 +126,22 @@ admin_members <- client$group_members(admin_guid)
 
 > NOTE: Checking for users who are members of multiple groups
 
+Conflicts are managed by preferring ADMIN > PUBLISHER > VIEWER. I.e. so a member
+of the ADMIN group (`r admin_group`) who is also a member of the VIEWER group
+(`r viewer_group`) will be assigned the role "administrator."
+
 ```{r find_group_membership_differences}
 viewer_differences <- purrr::keep(
   viewer_members$results,
   ~ .x$user_role != "viewer" &&
-    ! .x$guid %in% purrr::map_chr(publisher_members$results, ~.x$guid) &&
-    ! .x$guid %in% purrr::map_chr(admin_members$results, ~.x$guid)
+    ! .x$guid %in% purrr::map_chr(publisher_members$results, function(x) x$guid) &&
+    ! .x$guid %in% purrr::map_chr(admin_members$results, function(x) x$guid)
 )
 
 publisher_differences <- purrr::keep(
   publisher_members$results,
   ~ .x$user_role != "publisher" &&
-    ! .x$guid %in% purrr::map_chr(admin_members$results, ~.x$guid)
+    ! .x$guid %in% purrr::map_chr(admin_members$results, function(x) x$guid)
 )
 
 admin_differences <- purrr::keep(
