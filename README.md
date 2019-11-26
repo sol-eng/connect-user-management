@@ -21,7 +21,7 @@ your organization.
         - Be sure you understand what is happening before you run it!
     - **NOTE: Does not work for LDAP Authentication due to current API limitations**
         - Please let us know if you want to use something like this for LDAP Authentication!
-        - It just requires getting group memberships directly from LDAP
+        - It just requires getting group memberships directly from LDAP (i.e. by querying LDAP directly)
     - Sends an email with information about the users whose role was changed
     - To run interactively, you can use "Knit with Parameters"
 
