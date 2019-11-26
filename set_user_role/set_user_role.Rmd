@@ -67,7 +67,9 @@ This report will:
 - map those users to the associated RStudio Connect user roles
 - if a user is a member of multiple groups, they will get the greater of the roles
 
-Are we going to run the report? (based on the parameter `run_report`, which defaults to FALSE)
+Are we going to run the report? (based on the parameter `run_report`, which
+defaults to FALSE. In order to change it, either edit the YAML header or use the
+`Knit with Parameters` option)
 
 **`r ifelse(params$run_report, "YES", "NO")`**
 
