@@ -11,7 +11,7 @@
 
 
 
-<meta name="date" content="2019-11-08" />
+<meta name="date" content="2019-11-26" />
 
 <title>Set User Role</title>
 
@@ -1706,7 +1706,7 @@ summary {
 
 
 <h1 class="title toc-ignore">Set User Role</h1>
-<h4 class="date">2019-11-08</h4>
+<h4 class="date">2019-11-26</h4>
 
 </div>
 
@@ -1741,7 +1741,7 @@ summary {
 <li>map those users to the associated RStudio Connect user roles</li>
 <li>if a user is a member of multiple groups, they will get the greater of the roles</li>
 </ul>
-<p>Are we going to run the report? (based on the parameter <code>run_report</code>, which defaults to FALSE)</p>
+<p>Are we going to run the report? (based on the parameter <code>run_report</code>, which defaults to FALSE. In order to change it, either edit the YAML header or use the <code>Knit with Parameters</code> option)</p>
 <p><strong>YES</strong></p>
 <div id="get-the-connect-groups-in-question" class="section level2">
 <h2>Get the Connect Groups in Question</h2>
@@ -1765,35 +1765,35 @@ groups_list &lt;- purrr::set_names(
 groups_list</code></pre>
 <pre><code>## $role_admin
 ## $role_admin$guid
-## [1] &quot;3d52f1ec-7cc7-4949-9b87-d66df380f684&quot;
+## [1] &quot;7e044a02-70c6-4750-90e2-bab6a31470cd&quot;
 ## 
 ## $role_admin$name
 ## [1] &quot;role_admin&quot;
 ## 
 ## $role_admin$owner_guid
-## [1] &quot;cc94d27c-2ed0-4477-987d-77a3570310fb&quot;
+## [1] &quot;781537e8-99af-45cb-b803-12a1a1df0909&quot;
 ## 
 ## 
 ## $role_publisher
 ## $role_publisher$guid
-## [1] &quot;955fba93-38d8-4f9d-9ba5-d9457ae27eea&quot;
+## [1] &quot;4342e467-709f-4d57-a5c6-d160d251e3d8&quot;
 ## 
 ## $role_publisher$name
 ## [1] &quot;role_publisher&quot;
 ## 
 ## $role_publisher$owner_guid
-## [1] &quot;cc94d27c-2ed0-4477-987d-77a3570310fb&quot;
+## [1] &quot;781537e8-99af-45cb-b803-12a1a1df0909&quot;
 ## 
 ## 
 ## $role_viewer
 ## $role_viewer$guid
-## [1] &quot;07380fc7-1157-4829-9289-297900d70e70&quot;
+## [1] &quot;feec5bb3-f601-4ff6-832c-f86d900f43bb&quot;
 ## 
 ## $role_viewer$name
 ## [1] &quot;role_viewer&quot;
 ## 
 ## $role_viewer$owner_guid
-## [1] &quot;cc94d27c-2ed0-4477-987d-77a3570310fb&quot;</code></pre>
+## [1] &quot;781537e8-99af-45cb-b803-12a1a1df0909&quot;</code></pre>
 </div>
 <div id="get-the-list-of-members-for-those-groups" class="section level2">
 <h2>Get the List of Members for those Groups</h2>
@@ -1821,17 +1821,18 @@ admin_members &lt;- client$group_members(admin_guid)
 <blockquote>
 <p>NOTE: Checking for users who are members of multiple groups</p>
 </blockquote>
+<p>Conflicts are managed by preferring ADMIN &gt; PUBLISHER &gt; VIEWER. I.e. so a member of the ADMIN group (role_admin) who is also a member of the VIEWER group (role_viewer) will be assigned the role “administrator.”</p>
 <pre class="r"><code>viewer_differences &lt;- purrr::keep(
   viewer_members$results,
   ~ .x$user_role != &quot;viewer&quot; &amp;&amp;
-    ! .x$guid %in% purrr::map_chr(publisher_members$results, ~.x$guid) &amp;&amp;
-    ! .x$guid %in% purrr::map_chr(admin_members$results, ~.x$guid)
+    ! .x$guid %in% purrr::map_chr(publisher_members$results, function(x) x$guid) &amp;&amp;
+    ! .x$guid %in% purrr::map_chr(admin_members$results, function(x) x$guid)
 )
 
 publisher_differences &lt;- purrr::keep(
   publisher_members$results,
   ~ .x$user_role != &quot;publisher&quot; &amp;&amp;
-    ! .x$guid %in% purrr::map_chr(admin_members$results, ~.x$guid)
+    ! .x$guid %in% purrr::map_chr(admin_members$results, function(x) x$guid)
 )
 
 admin_differences &lt;- purrr::keep(
@@ -1858,7 +1859,7 @@ exec_df &lt;- purrr::map_df(exec_list, identity)
 exec_df</code></pre>
 <div data-pagedtable="false">
 <script data-pagedtable-source type="application/json">
-{"columns":[{"label":["current_role"],"name":[1],"type":["chr"],"align":["left"]},{"label":["target_role"],"name":[2],"type":["chr"],"align":["left"]},{"label":["username"],"name":[3],"type":["chr"],"align":["left"]},{"label":["email"],"name":[4],"type":["chr"],"align":["left"]},{"label":["user_guid"],"name":[5],"type":["chr"],"align":["left"]}],"data":[{"1":"publisher","2":"viewer","3":"qamufiytsasxctszccophaplx","4":"test@example.com","5":"db787971-eb32-427f-9a39-fd1c48fb3832"},{"1":"administrator","2":"publisher","3":"garhmzzorncuwfamjgjfjyqgb","4":"test@example.com","5":"53a2eacd-39a7-4557-b630-42ebb5a87bfe"},{"1":"publisher","2":"administrator","3":"umwllqyjvvexulccoxgtqtpcq","4":"test@example.com","5":"1287ba97-7c34-4d5e-8b83-b607c0a7e5b0"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["current_role"],"name":[1],"type":["chr"],"align":["left"]},{"label":["target_role"],"name":[2],"type":["chr"],"align":["left"]},{"label":["username"],"name":[3],"type":["chr"],"align":["left"]},{"label":["email"],"name":[4],"type":["chr"],"align":["left"]},{"label":["user_guid"],"name":[5],"type":["chr"],"align":["left"]}],"data":[{"1":"publisher","2":"viewer","3":"test_collab_alttmclljhsvtsjdqrfucuwzszue","4":"collab_alt@example.com","5":"50425f9c-fea6-417e-89d3-3f2e6edd1b62"},{"1":"administrator","2":"viewer","3":"test_collabhaqsziwduhfiiqkjvbdugpohu","4":"collab@example.com","5":"2a9ed40c-0538-48af-acb4-e119035f4fe8"},{"1":"viewer","2":"publisher","3":"test_collabbnudfmchyemrkupevfkrzjygt","4":"collab@example.com","5":"0bcb6421-d415-4617-b3e4-dbb148aa9c80"},{"1":"administrator","2":"publisher","3":"test_viewer_altsrdvouiytvlczpkouujgkvxxr","4":"viewer_alt@example.com","5":"3ef38589-9ff3-410e-bca5-8eeab29d072d"},{"1":"viewer","2":"administrator","3":"test_collab","4":"collab@example.com","5":"90adfbbf-d668-4659-9841-9f69236b6fe9"},{"1":"publisher","2":"administrator","3":"test","4":"test@test.test","5":"a296443e-3189-47ac-be69-9c91d7f36696"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 </div>
@@ -1878,69 +1879,129 @@ exec_df</code></pre>
 results</code></pre>
 <pre><code>## [[1]]
 ## [[1]]$email
-## [1] &quot;test@example.com&quot;
+## [1] &quot;collab_alt@example.com&quot;
 ## 
 ## [[1]]$username
-## [1] &quot;qamufiytsasxctszccophaplx&quot;
+## [1] &quot;test_collab_alttmclljhsvtsjdqrfucuwzszue&quot;
 ## 
 ## [[1]]$first_name
-## [1] &quot;Test&quot;
+## [1] &quot;&quot;
 ## 
 ## [[1]]$last_name
-## [1] &quot;User&quot;
+## [1] &quot;&quot;
 ## 
 ## [[1]]$user_role
 ## [1] &quot;viewer&quot;
 ## 
 ## [[1]]$updated_time
-## [1] &quot;2019-11-09T03:48:49Z&quot;
+## [1] &quot;2019-11-26T13:55:27Z&quot;
 ## 
 ## 
 ## [[2]]
 ## [[2]]$email
-## [1] &quot;test@example.com&quot;
+## [1] &quot;collab@example.com&quot;
 ## 
 ## [[2]]$username
-## [1] &quot;garhmzzorncuwfamjgjfjyqgb&quot;
+## [1] &quot;test_collabhaqsziwduhfiiqkjvbdugpohu&quot;
 ## 
 ## [[2]]$first_name
-## [1] &quot;Test&quot;
+## [1] &quot;&quot;
 ## 
 ## [[2]]$last_name
-## [1] &quot;User&quot;
+## [1] &quot;&quot;
 ## 
 ## [[2]]$user_role
-## [1] &quot;publisher&quot;
+## [1] &quot;viewer&quot;
 ## 
 ## [[2]]$updated_time
-## [1] &quot;2019-11-09T03:48:49Z&quot;
+## [1] &quot;2019-11-26T13:55:27Z&quot;
 ## 
 ## 
 ## [[3]]
 ## [[3]]$email
-## [1] &quot;test@example.com&quot;
+## [1] &quot;collab@example.com&quot;
 ## 
 ## [[3]]$username
-## [1] &quot;umwllqyjvvexulccoxgtqtpcq&quot;
+## [1] &quot;test_collabbnudfmchyemrkupevfkrzjygt&quot;
 ## 
 ## [[3]]$first_name
-## [1] &quot;Test&quot;
+## [1] &quot;&quot;
 ## 
 ## [[3]]$last_name
-## [1] &quot;User&quot;
+## [1] &quot;&quot;
 ## 
 ## [[3]]$user_role
-## [1] &quot;administrator&quot;
+## [1] &quot;publisher&quot;
 ## 
 ## [[3]]$updated_time
-## [1] &quot;2019-11-09T03:48:49Z&quot;</code></pre>
+## [1] &quot;2019-11-26T13:55:27Z&quot;
+## 
+## 
+## [[4]]
+## [[4]]$email
+## [1] &quot;viewer_alt@example.com&quot;
+## 
+## [[4]]$username
+## [1] &quot;test_viewer_altsrdvouiytvlczpkouujgkvxxr&quot;
+## 
+## [[4]]$first_name
+## [1] &quot;&quot;
+## 
+## [[4]]$last_name
+## [1] &quot;&quot;
+## 
+## [[4]]$user_role
+## [1] &quot;publisher&quot;
+## 
+## [[4]]$updated_time
+## [1] &quot;2019-11-26T13:55:27Z&quot;
+## 
+## 
+## [[5]]
+## [[5]]$email
+## [1] &quot;collab@example.com&quot;
+## 
+## [[5]]$username
+## [1] &quot;test_collab&quot;
+## 
+## [[5]]$first_name
+## [1] &quot;&quot;
+## 
+## [[5]]$last_name
+## [1] &quot;&quot;
+## 
+## [[5]]$user_role
+## [1] &quot;administrator&quot;
+## 
+## [[5]]$updated_time
+## [1] &quot;2019-11-26T13:55:27Z&quot;
+## 
+## 
+## [[6]]
+## [[6]]$email
+## [1] &quot;test@test.test&quot;
+## 
+## [[6]]$username
+## [1] &quot;test&quot;
+## 
+## [[6]]$first_name
+## [1] &quot;test&quot;
+## 
+## [[6]]$last_name
+## [1] &quot;test&quot;
+## 
+## [[6]]$user_role
+## [1] &quot;administrator&quot;
+## 
+## [[6]]$updated_time
+## [1] &quot;2019-11-26T13:55:28Z&quot;</code></pre>
 </div>
 <div id="create-an-email" class="section level2">
 <h2>Create an Email</h2>
 <p>If users have been changed, send an email.</p>
 <ul>
-<li><strong>3 users <em>to change</em></strong></li>
-<li><strong>3 users <em>changed</em></strong></li>
+<li><strong>6 users <em>to change</em></strong></li>
+<li><strong>6 users <em>changed</em></strong></li>
 </ul>
 <pre class="r"><code>if (nrow(exec_df) &gt; 0) {
   suppress_scheduled_email(FALSE)
