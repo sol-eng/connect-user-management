@@ -1,0 +1,209 @@
+---
+title: "Set User Role"
+date: "`r Sys.Date()`"
+output: 
+  html_document: 
+    df_print: paged
+    code_folding: hide
+params:
+  viewer_group:
+    input: text
+    label: "Viewer Group"
+    value: "role_viewer"
+  publisher_group:
+    input: text
+    label: "Publisher Group"
+    value: "role_publisher"
+  admin_group:
+    input: text
+    label: "Administrator Group"
+    value: "role_admin"
+  run_report:
+    input: select
+    choices: [TRUE, FALSE]
+    label: "Run Report?"
+    value: false
+---
+```{r preflight_check, results='asis', include=TRUE}
+if (
+  nchar(Sys.getenv("RSTUDIO_CONNECT_SERVER")) == 0 ||
+  nchar(Sys.getenv("RSTUDIO_CONNECT_API_KEY")) == 0
+) {
+  print(htmltools::h4("ERROR: Variables Not Defined"))
+  print(htmltools::div(
+    "The RSTUDIO_CONNECT_SERVER and RSTUDIO_CONNECT_API_KEY",
+    "environment variables are required in order for this report",
+    "to manage users. The API_KEY should represent an administrator",
+    htmltools::br(),
+    htmltools::br(),
+    "Please define these variables",
+    "and then re-run the report.",
+    htmltools::br(),
+    htmltools::br(),
+    style = "max-width: 600px"
+  ))
+  knitr::knit_exit("Terminating the report early.")
+}
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(blastula)
+library(connectapi)
+library(purrr)
+
+# suppress email by default (enable if changes)
+suppress_scheduled_email()
+
+client <- connect()
+```
+
+This report will:
+
+- get members in the group names specified by parameters
+    - Viewer: "`r params$viewer_group`"
+    - Publisher: "`r params$publisher_group`"
+    - Admin: "`r params$admin_group`"
+- map those users to the associated RStudio Connect user roles
+- if a user is a member of multiple groups, they will get the greater of the roles
+
+Are we going to run the report? (based on the parameter `run_report`, which
+defaults to FALSE. In order to change it, either edit the YAML header or use the
+`Knit with Parameters` option)
+
+**`r ifelse(params$run_report, "YES", "NO")`**
+
+```{r, echo=FALSE}
+run_report <- as.logical(params$run_report)
+if (!run_report) knitr::knit_exit("Terminating the report early.")
+```
+
+## Get the Connect Groups in Question
+
+```{r get_groups}
+# simple - only get 500 groups... no paging
+all_groups <- client$groups(page_size = 500)
+
+# find the entries we care about
+viewer_group <- params$viewer_group
+publisher_group <- params$publisher_group
+admin_group <- params$admin_group
+target_groups <- c(
+  viewer_group, publisher_group, admin_group
+  )
+
+groups_list <- purrr::keep(all_groups$results, ~.x$name %in% target_groups)
+groups_list <- purrr::set_names(
+  groups_list, 
+  purrr::map_chr(groups_list, ~ .x$name)
+  )
+
+groups_list
+```
+
+## Get the List of Members for those Groups
+
+```{r get_group_membership}
+viewer_members <- list();
+publisher_members <- list();
+admin_members <- list();
+
+tryCatch({
+viewer_guid <- groups_list[[viewer_group]]$guid
+viewer_members <- client$group_members(viewer_guid)
+}, error = function(e){print(e); message("Maybe viewer_group not found?")})
+
+tryCatch({
+publisher_guid <- groups_list[[publisher_group]]$guid
+publisher_members <- client$group_members(publisher_guid)
+}, error = function(e){print(e); message("Maybe publisher_group not found?")})
+
+tryCatch({
+admin_guid <- groups_list[[admin_group]]$guid
+admin_members <- client$group_members(admin_guid)
+}, error = function(e){print(e); message("Maybe admin_group not found?")})
+```
+
+## Find Users whose Role does not Match
+
+> NOTE: Checking for users who are members of multiple groups
+
+Conflicts are managed by preferring ADMIN > PUBLISHER > VIEWER. I.e. so a member
+of the ADMIN group (`r admin_group`) who is also a member of the VIEWER group
+(`r viewer_group`) will be assigned the role "administrator."
+
+```{r find_group_membership_differences}
+viewer_differences <- purrr::keep(
+  viewer_members$results,
+  ~ .x$user_role != "viewer" &&
+    ! .x$guid %in% purrr::map_chr(publisher_members$results, function(x) x$guid) &&
+    ! .x$guid %in% purrr::map_chr(admin_members$results, function(x) x$guid)
+)
+
+publisher_differences <- purrr::keep(
+  publisher_members$results,
+  ~ .x$user_role != "publisher" &&
+    ! .x$guid %in% purrr::map_chr(admin_members$results, function(x) x$guid)
+)
+
+admin_differences <- purrr::keep(
+  admin_members$results,
+  ~ .x$user_role != "administrator"
+)
+```
+
+```{r print_group_membership_differences}
+simplify_function <- function(.list , .target) {
+  list(
+    current_role = .list$user_role,
+    target_role = .target,
+    username = .list$username,
+    email = .list$email,
+    user_guid = .list$guid
+  )
+}
+
+exec_list <- c(
+  purrr::map2(viewer_differences, "viewer", simplify_function),
+  purrr::map2(publisher_differences, "publisher", simplify_function),
+  purrr::map2(admin_differences, "administrator", simplify_function)
+)
+
+exec_df <- purrr::map_df(exec_list, identity)
+exec_df
+```
+
+## Set Group Membership
+
+```{r set_group_membership}
+results <- purrr::pmap(
+  list(
+    guid = purrr::map_chr(exec_list, ~.x$user_guid),
+    target_role = purrr::map_chr(exec_list, ~.x$target_role)
+    ),
+  function(guid, target_role, client) {
+    client$users_update(user_guid = guid, user_role = target_role)
+  },
+  client = client
+)
+
+results
+```
+
+## Create an Email
+
+If users have been changed, send an email.
+
+- **`r nrow(exec_df)` users _to change_**
+- **`r length(results)` users _changed_**
+
+```{r send_email}
+if (nrow(exec_df) > 0) {
+  suppress_scheduled_email(FALSE)
+  render_connect_email("set_user_role_email.Rmd") %>%
+  attach_connect_email(
+    subject = glue::glue("Changed {length(results)} User Role(s)"),
+    attach_output = TRUE
+  )
+}
+```
