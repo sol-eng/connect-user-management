@@ -1833,9 +1833,6 @@
     }
   },
   "files": {
-    ".Rprofile": {
-      "checksum": "cf3d7435253132f6633f2af0f363e3c1"
-    },
     "app.R": {
       "checksum": "4b57393b8b8ac0b29dc474a3171a7426"
     },
@@ -2018,9 +2015,6 @@
     },
     "packrat/packrat.lock": {
       "checksum": "bf780f731feed6173d2e60fca1f61ea3"
-    },
-    "README.md": {
-      "checksum": "6f415f678f5ab31dffcb51f240229ab4"
     }
   },
   "users": null
