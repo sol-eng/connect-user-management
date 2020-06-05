@@ -1,6 +1,6 @@
 # Deploy to RStudio Connect
 You can deploy this app directly to your RStudio Connect instance using
-[git-backed deployment](https://docs.rstudio.com/connect/user/git-backed/).
+[git-backed deployment](https://docs.rstudio.com/connect/user/git-backed/). The URL will be https://github.com/sol-eng/connect-user-management.git.
 
 On first deploy, the app will fail and you will have to define the `CONNECT_SERVER` and `CONNECT_API_KEY` [environment vars](https://docs.rstudio.com/connect/user/content-settings/#content-vars).
 
