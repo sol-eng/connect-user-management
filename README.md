@@ -7,13 +7,13 @@ users and groups.
 This repository houses some examples that might be useful in
 your organization.
 
-- [Email that Reports New Users on RStudio Connect](./email_new_users/email_new_users.Rmd)
+## [Email that Reports New Users on RStudio Connect](./email_new_users/email_new_users.Rmd)
     - Configurable "lookback" period
     - Checks if any users were created within the last X days (i.e. last day)
     - Shows the data for those users
     - Sends an email with the user, email, and created time
   
-- [Report that Sets User Roles based on Group Membership](./set_user_role/set_user_role.Rmd)
+## [Report that Sets User Roles based on Group Membership](./set_user_role/set_user_role.Rmd)
     - Configurable group names mapped to roles (`viewer`, `publisher`, `administrator`)
     - Groups must already exist on RStudio Connect
     - **NOTE: Has a `run_report` parameter that defaults to FALSE!!**
@@ -26,3 +26,11 @@ your organization.
     - To run interactively, you can use "Knit with Parameters"
 
 ![Knit with Parameters in the RStudio IDE](./knit_with_params.png)
+
+## [Chargeback Calculator](./chargeback_calculator/apps.R)
+This is a simple app to calculate per-group chargebacks on RStudio Connect.
+
+You can see a version of this app running at https://colorado.rstudio.com/rsc/chargeback-calculator/
+
+Instructions for running this app for your RStudio Connect instance are in the [README](./chargeback_calculator/README.md).
+
