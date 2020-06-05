@@ -10,7 +10,15 @@ Your `CONNECT_SERVER` is the URL of your RStudio Connect server. Instructions fo
 If you want to edit the app before deploying to RStudio Connect, you will have to prepare your package environment.
 
 1) Open the chargeback_counter project by opening the `chargeback_counter.Rproj` in the RStudio IDE.
-2) Restore the R packages by running `renv::restore`.
+2) Activate renv by running `source('renv/activate.R')`. Then restore the R packages by running `renv::restore`.
   - If you are on a Linux system, you may wish to change the restore to use binary packages from RStudio Package Manager, as installs will be much faster. You can do this by visiting [RStudio's public package manager](https://packagemanager.rstudio.com/client/#/repos/1/overview) and choosing the binary repository appropriate for your linux distro. Run `renv::modify` and change the URL line to the one from Package Manager before running `renv::restore`.
-3) Add an RStudio Connect API Key and Server to the `.Rprofile` file included. You can get an API Key using [these instructions](https://docs.rstudio.com/connect/user/api-keys/).
+3) Add an RStudio Connect API Key and Server to an `.Renviron` using `usethis::edit_r_environ("project")`. 
+
+You'll want to add the lines:
+```
+CONNECT_SERVER = <server_address>
+CONNECT_API_KEY = <api_key>
+```
+
+You can get an API Key using [these instructions](https://docs.rstudio.com/connect/user/api-keys/).
 
